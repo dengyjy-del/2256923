@@ -2,21 +2,26 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Chart Studio — график для записи видео</title>
-<meta name="description" content="Симулятор торгового графика для записи роликов: свечи, таймфреймы, движение к заданной цели, позиция и живой PnL.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23131722'/><rect x='7' y='12' width='5' height='11' fill='%2326a69a'/><rect x='9' y='7' width='1.5' height='19' fill='%2326a69a'/><rect x='19' y='9' width='5' height='9' fill='%23ef5350'/><rect x='21' y='5' width='1.5' height='20' fill='%23ef5350'/></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Chart Studio</title>
+<meta name="description" content="Симулятор торгового графика для записи роликов: свечи, таймфреймы, движение к заданной цене, позиция, тейк-профит и живой PnL.">
+<meta name="theme-color" content="#131722">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chart">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div id="app" class="app">
 
-  <!-- ── Верхняя панель ─────────────────────────────────────── -->
   <header class="topbar">
     <div class="tb-left">
       <div class="tb-symbol" id="tbSymbol">BTCUSDT</div>
-      <div class="tb-div"></div>
       <div class="tf-group" id="tfGroup">
         <button class="tf" data-tf="1m">1м</button>
         <button class="tf" data-tf="5m">5м</button>
@@ -27,71 +32,76 @@
         <button class="tf" data-tf="1d">1D</button>
       </div>
     </div>
-
     <div class="tb-right">
-      <button class="tb-btn" id="btnFrame" title="Рамка 9:16 для вертикального видео">9:16</button>
-      <button class="tb-btn" id="btnClean" title="Скрыть панель настроек (H)">Чистый режим</button>
+      <button class="tb-btn" id="btnFrame" title="Рамка 9:16">9:16</button>
+      <button class="tb-btn" id="btnClean" title="Скрыть служебные кнопки (H)">Чистый режим</button>
       <button class="tb-btn primary" id="btnPlay" title="Пробел">▶ Старт</button>
+      <button class="tb-btn tb-menu" id="btnMenu" aria-label="Настройки">☰</button>
     </div>
   </header>
 
-  <!-- ── Рабочая область ────────────────────────────────────── -->
   <main class="workspace">
-
     <section class="chart-wrap" id="chartWrap">
       <canvas id="chart"></canvas>
 
-      <!-- Легенда как в TradingView -->
-      <div class="legend" id="legend">
+      <div class="legend">
         <div class="legend-row">
           <span class="lg-sym" id="lgSym">BTCUSDT</span>
           <span class="lg-tf" id="lgTf">15м</span>
+          <span class="lg-chg" id="lgChg"></span>
         </div>
         <div class="legend-row ohlc" id="lgOhlc"></div>
       </div>
 
-      <!-- Карточка позиции -->
       <div class="pos-card hidden" id="posCard">
         <div class="pc-head">
           <span class="pc-side" id="pcSide">LONG</span>
           <span class="pc-lev" id="pcLev">20x</span>
-          <span class="pc-sym" id="pcSym">BTCUSDT</span>
         </div>
-        <div class="pc-pnl" id="pcPnl">+0.00 USDT</div>
+        <div class="pc-pnl" id="pcPnl">+0.00</div>
         <div class="pc-roe" id="pcRoe">+0.00%</div>
         <div class="pc-grid">
           <div><span>Вход</span><b id="pcEntry">—</b></div>
+          <div><span>Тейк-профит</span><b id="pcTp" class="green">—</b></div>
           <div><span>Размер</span><b id="pcSize">—</b></div>
-          <div><span>Маржа</span><b id="pcMargin">—</b></div>
           <div><span>Ликвидация</span><b id="pcLiq" class="red">—</b></div>
         </div>
       </div>
 
+      <div class="countdown" id="countdown"></div>
       <div class="toast" id="toast"></div>
     </section>
 
-    <!-- ── Панель настроек ──────────────────────────────────── -->
     <aside class="sidebar" id="sidebar">
+      <div class="sheet-head">
+        <span class="grip"></span>
+        <h2>Настройки</h2>
+        <button class="sheet-done" id="btnSheetClose">Готово</button>
+      </div>
 
       <div class="card">
         <h3>Инструмент</h3>
         <label class="field">
           <span>Тикер</span>
-          <input type="text" id="inSymbol" value="BTCUSDT" autocomplete="off" spellcheck="false">
+          <input type="text" id="inSymbol" value="BTCUSDT" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </label>
         <div class="row2">
           <label class="field">
             <span>Цена от</span>
-            <input type="number" id="inLow" value="61000" step="any">
+            <input type="number" inputmode="decimal" id="inLow" value="61000" step="any">
           </label>
           <label class="field">
             <span>Цена до</span>
-            <input type="number" id="inHigh" value="69000" step="any">
+            <input type="number" inputmode="decimal" id="inHigh" value="69000" step="any">
           </label>
         </div>
         <label class="field">
-          <span>Стартовая цена <i>(пусто = середина)</i></span>
-          <input type="number" id="inStart" placeholder="65000" step="any">
+          <span>Стартовая цена <i>(пусто — середина)</i></span>
+          <input type="number" inputmode="decimal" id="inStart" placeholder="65000" step="any">
+        </label>
+        <label class="field">
+          <span>Макс. размер свечи <b id="outMaxC">без ограничения</b></span>
+          <input type="number" inputmode="decimal" id="inMaxCandle" placeholder="пусто — без ограничения" step="any">
         </label>
         <label class="field">
           <span>Волатильность <b id="outVol">1.0×</b></span>
@@ -105,11 +115,11 @@
         <div class="row2">
           <label class="field">
             <span>Цена цели</span>
-            <input type="number" id="inTarget" placeholder="68500" step="any">
+            <input type="number" inputmode="decimal" id="inTarget" placeholder="68500" step="any">
           </label>
           <label class="field">
             <span>За сколько свечей</span>
-            <input type="number" id="inBars" value="20" min="1" max="500" step="1">
+            <input type="number" inputmode="numeric" id="inBars" value="20" min="1" max="500" step="1">
           </label>
         </div>
         <div class="quick" id="quickPct">
@@ -141,38 +151,65 @@
       </div>
 
       <div class="card">
-        <h3>Скорость записи</h3>
+        <h3>Позиция</h3>
+        <div class="row2">
+          <label class="field">
+            <span>Маржа, USDT</span>
+            <input type="number" inputmode="decimal" id="inMargin" value="1000" min="1" step="any">
+          </label>
+          <label class="field">
+            <span>Плечо</span>
+            <input type="number" inputmode="numeric" id="inLev" value="20" min="1" max="125" step="1">
+          </label>
+        </div>
+        <label class="field">
+          <span>Тейк-профит <i>(цена)</i></span>
+          <input type="number" inputmode="decimal" id="inTp" placeholder="пусто — без тейка" step="any">
+        </label>
+        <div class="quick" id="quickTp">
+          <button data-tp="20">+20%</button>
+          <button data-tp="50">+50%</button>
+          <button data-tp="100">+100%</button>
+        </div>
+        <div class="hint">Проценты считаются от маржи с учётом плеча и подставляются в сторону открытой позиции.</div>
+        <label class="check">
+          <input type="checkbox" id="inLiq" checked>
+          <span>Ликвидировать при достижении цены ликвидации</span>
+        </label>
+        <div class="row2">
+          <button class="btn long" id="btnLong">Long</button>
+          <button class="btn short" id="btnShort">Short</button>
+        </div>
+        <button class="btn ghost wide" id="btnClose">Закрыть позицию</button>
+      </div>
+
+      <div class="card">
+        <h3>Запись</h3>
         <label class="field">
           <span>Одна свеча за <b id="outSpeed">1.5 с</b></span>
           <input type="range" id="inSpeed" min="0.2" max="8" step="0.1" value="1.5">
         </label>
         <label class="field">
-          <span>Масштаб <b id="outZoom">8 px</b></span>
-          <input type="range" id="inZoom" min="2" max="26" step="1" value="8">
+          <span>Ширина свечи <b id="outZoom">7 px</b></span>
+          <input type="range" id="inZoom" min="2" max="26" step="1" value="7">
         </label>
-      </div>
-
-      <div class="card">
-        <h3>Позиция</h3>
-        <div class="row2">
-          <label class="field">
-            <span>Маржа, USDT</span>
-            <input type="number" id="inMargin" value="1000" min="1" step="any">
-          </label>
-          <label class="field">
-            <span>Плечо</span>
-            <input type="number" id="inLev" value="20" min="1" max="125" step="1">
-          </label>
-        </div>
         <label class="check">
-          <input type="checkbox" id="inLiq" checked>
-          <span>Ликвидировать при пробое цены ликвидации</span>
+          <input type="checkbox" id="inCountdown" checked>
+          <span>Старт с отсчётом 3 · 2 · 1</span>
         </label>
-        <div class="row2">
-          <button class="btn long" id="btnLong">Купить / Long</button>
-          <button class="btn short" id="btnShort">Продать / Short</button>
-        </div>
-        <button class="btn ghost wide" id="btnClose">Закрыть позицию</button>
+        <label class="check">
+          <input type="checkbox" id="inTradeBar" checked>
+          <span>Кнопки Long / Short внизу экрана</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inWatermark">
+          <span>Тикер бледным фоном на графике</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inClean">
+          <span>Чистый режим: убрать служебные кнопки</span>
+        </label>
+        <div class="hint">В чистом режиме запуск и пауза — касанием по графику.</div>
       </div>
 
       <div class="card keys">
@@ -182,9 +219,33 @@
         <div><kbd>H</kbd> чистый режим &nbsp; <kbd>R</kbd> новая история</div>
         <div><kbd>V</kbd> рамка 9:16 &nbsp; <kbd>T</kbd> задать цель</div>
       </div>
-
     </aside>
   </main>
+
+  <div class="actionbar" id="actionbar">
+    <button class="ab-close hidden" id="abClose">Закрыть позицию <b id="abPnl">+0.00</b></button>
+    <div class="ab-row">
+      <button class="ab-icon" id="abPlay" aria-label="Старт">▶</button>
+      <button class="ab-btn long" id="abLong">Long</button>
+      <button class="ab-btn short" id="abShort">Short</button>
+    </div>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-icon" id="mdIcon">✓</div>
+    <div class="modal-title" id="mdTitle">Тейк-профит исполнен</div>
+    <div class="modal-sub" id="mdSub">BTCUSDT · LONG 20x</div>
+    <div class="modal-pnl" id="mdPnl">+1 240.50 USDT</div>
+    <div class="modal-grid">
+      <div><span>Цена входа</span><b id="mdEntry">—</b></div>
+      <div><span>Цена закрытия</span><b id="mdExit">—</b></div>
+    </div>
+    <button class="btn accent wide" id="mdOk">Понятно</button>
+  </div>
 </div>
 
 <script src="app.js"></script>
