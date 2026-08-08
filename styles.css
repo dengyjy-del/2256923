@@ -121,6 +121,8 @@ body.clean #btnFrame,body.clean #btnClean,body.clean #btnPlay{display:none}
   pointer-events:none;
 }
 .pos-card.hidden{display:none}
+.pos-card.compact .pc-grid{display:none}
+.pos-card.compact .pc-roe{margin-bottom:0}
 .pc-head{display:flex;align-items:center;gap:6px;margin-bottom:5px}
 .pc-side{font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:2px 6px;border-radius:3px;color:#fff;background:var(--green)}
 .pc-side.short{background:var(--red)}
@@ -158,6 +160,42 @@ body.clean #btnFrame,body.clean #btnClean,body.clean #btnPlay{display:none}
   box-shadow:0 10px 30px rgba(0,0,0,.5);
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ── Уведомление о сделке ───────────────────────────────── */
+.note{
+  position:absolute;left:10px;right:10px;bottom:10px;
+  max-width:420px;margin:0 auto;
+  display:flex;align-items:center;gap:10px;
+  background:rgba(30,34,45,.97);
+  border:1px solid var(--border);
+  border-left:3px solid var(--green);
+  border-radius:10px;
+  padding:9px 10px 9px 11px;
+  box-shadow:0 12px 34px rgba(0,0,0,.5);
+  backdrop-filter:blur(6px);
+  transform:translateY(150%);
+  opacity:0;
+  transition:transform .32s cubic-bezier(.2,.9,.3,1),opacity .25s;
+  pointer-events:none;
+}
+.note.on{transform:none;opacity:1;pointer-events:auto}
+.note.loss{border-left-color:var(--red)}
+.note-icon{
+  flex:0 0 26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;background:var(--green);
+}
+.note.loss .note-icon{background:var(--red)}
+.note-body{flex:1;min-width:0}
+.note-title{font-size:13px;font-weight:700;color:#fff;line-height:1.25}
+.note-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-pnl{font-family:var(--mono);font-size:15.5px;font-weight:700;letter-spacing:-.4px;white-space:nowrap}
+.note-x{
+  flex:0 0 auto;background:none;border:0;cursor:pointer;
+  color:var(--text-dim);font-size:19px;line-height:1;padding:2px 2px 4px;
+}
+.note-x:hover{color:var(--text)}
+.chart-wrap.noted .toast{bottom:74px}
 
 /* ── Панель настроек ────────────────────────────────────── */
 .sidebar{
@@ -257,46 +295,6 @@ kbd{font-family:var(--mono);font-size:10.5px;background:var(--bg);border:1px sol
 }
 .backdrop.on{opacity:1;pointer-events:auto}
 
-/* ── Всплывающее окно ───────────────────────────────────── */
-.modal{
-  position:fixed;inset:0;z-index:80;
-  display:none;align-items:center;justify-content:center;
-  padding:22px;
-  background:rgba(0,0,0,.6);
-  backdrop-filter:blur(3px);
-}
-.modal.on{display:flex}
-.modal-card{
-  width:100%;max-width:330px;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:22px 20px 18px;
-  text-align:center;
-  box-shadow:0 22px 60px rgba(0,0,0,.6);
-  animation:rise .26s cubic-bezier(.2,.9,.3,1.2);
-}
-@keyframes rise{from{transform:translateY(16px) scale(.94);opacity:0}to{transform:none;opacity:1}}
-.modal-icon{
-  width:52px;height:52px;margin:0 auto 12px;
-  border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:26px;font-weight:700;color:#fff;
-  background:var(--green);
-}
-.modal-icon.loss{background:var(--red)}
-.modal-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:3px}
-.modal-sub{font-size:12px;color:var(--text-dim);margin-bottom:14px}
-.modal-pnl{font-family:var(--mono);font-size:27px;font-weight:700;letter-spacing:-.8px;margin-bottom:16px}
-.modal-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;
-  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
-  padding:11px 0;margin-bottom:16px;
-}
-.modal-grid>div{display:flex;flex-direction:column;gap:2px}
-.modal-grid span{font-size:10.5px;color:var(--text-dim)}
-.modal-grid b{font-family:var(--mono);font-size:13px;font-weight:600}
-.modal .btn{padding:12px}
 
 /* ══════════ Телефон ══════════ */
 @media (max-width:860px){
@@ -325,6 +323,10 @@ kbd{font-family:var(--mono);font-size:10.5px;background:var(--bg);border:1px sol
   .pc-grid>div{flex-direction:row;justify-content:space-between;gap:8px;align-items:baseline}
 
   .countdown{font-size:76px}
+  .note{left:8px;right:8px;bottom:8px;padding:9px}
+  .note-title{font-size:12.5px}
+  .note-pnl{font-size:14.5px}
+  .chart-wrap.noted .toast{bottom:70px}
   .toast{bottom:14px;font-size:13px;padding:9px 14px;max-width:88vw;white-space:normal;text-align:center}
 
   /* панель настроек становится выезжающим листом */
@@ -414,8 +416,6 @@ kbd{font-family:var(--mono);font-size:10.5px;background:var(--bg);border:1px sol
   body.clean #abPlay{display:none}
 
   body.frame .app{width:100vw;border:0}
-  .modal-card{max-width:100%}
-  .modal-pnl{font-size:30px}
 }
 
 @media (max-width:860px) and (orientation:landscape){
@@ -426,6 +426,6 @@ kbd{font-family:var(--mono);font-size:10.5px;background:var(--bg);border:1px sol
 }
 
 @media (prefers-reduced-motion:reduce){
-  .toast,.sidebar,.backdrop{transition:none}
-  .modal-card,.countdown.pop{animation:none}
+  .toast,.sidebar,.backdrop,.note{transition:none}
+  .countdown.pop{animation:none}
 }

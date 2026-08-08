@@ -70,6 +70,16 @@
 
       <div class="countdown" id="countdown"></div>
       <div class="toast" id="toast"></div>
+
+      <div class="note" id="note">
+        <span class="note-icon" id="noteIcon">✓</span>
+        <div class="note-body">
+          <div class="note-title" id="noteTitle">Тейк-профит исполнен</div>
+          <div class="note-sub" id="noteSub">—</div>
+        </div>
+        <div class="note-pnl" id="notePnl">+0.00</div>
+        <button class="note-x" id="noteX" aria-label="Закрыть">×</button>
+      </div>
     </section>
 
     <aside class="sidebar" id="sidebar">
@@ -198,18 +208,38 @@
           <span>Старт с отсчётом 3 · 2 · 1</span>
         </label>
         <label class="check">
+          <input type="checkbox" id="inClean">
+          <span>Чистый режим: убрать служебные кнопки</span>
+        </label>
+        <div class="hint">В чистом режиме запуск и пауза — касанием по графику.</div>
+      </div>
+
+      <div class="card">
+        <h3>Что видно на графике</h3>
+        <label class="check">
+          <input type="checkbox" id="inShowCard" checked>
+          <span>Карточка позиции с PnL</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inShowDetails" checked>
+          <span>В карточке: вход, тейк, размер, ликвидация</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inShowLabel" checked>
+          <span>Метка LONG / SHORT на линии входа</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="inShowOhlc" checked>
+          <span>Строка O · H · L · C сверху</span>
+        </label>
+        <label class="check">
           <input type="checkbox" id="inTradeBar" checked>
           <span>Кнопки Long / Short внизу экрана</span>
         </label>
         <label class="check">
           <input type="checkbox" id="inWatermark">
-          <span>Тикер бледным фоном на графике</span>
+          <span>Тикер бледным фоном</span>
         </label>
-        <label class="check">
-          <input type="checkbox" id="inClean">
-          <span>Чистый режим: убрать служебные кнопки</span>
-        </label>
-        <div class="hint">В чистом режиме запуск и пауза — касанием по графику.</div>
       </div>
 
       <div class="card keys">
@@ -218,6 +248,7 @@
         <div><kbd>B</kbd> лонг &nbsp; <kbd>S</kbd> шорт &nbsp; <kbd>C</kbd> закрыть</div>
         <div><kbd>H</kbd> чистый режим &nbsp; <kbd>R</kbd> новая история</div>
         <div><kbd>V</kbd> рамка 9:16 &nbsp; <kbd>T</kbd> задать цель</div>
+        <div>Шкала цен справа: тянуть вверх-вниз или колесом — вертикальный масштаб, двойной клик — сброс.</div>
       </div>
     </aside>
   </main>
@@ -234,19 +265,7 @@
 
 <div class="backdrop" id="backdrop"></div>
 
-<div class="modal" id="modal">
-  <div class="modal-card">
-    <div class="modal-icon" id="mdIcon">✓</div>
-    <div class="modal-title" id="mdTitle">Тейк-профит исполнен</div>
-    <div class="modal-sub" id="mdSub">BTCUSDT · LONG 20x</div>
-    <div class="modal-pnl" id="mdPnl">+1 240.50 USDT</div>
-    <div class="modal-grid">
-      <div><span>Цена входа</span><b id="mdEntry">—</b></div>
-      <div><span>Цена закрытия</span><b id="mdExit">—</b></div>
-    </div>
-    <button class="btn accent wide" id="mdOk">Понятно</button>
-  </div>
-</div>
+
 
 <script src="app.js"></script>
 </body>

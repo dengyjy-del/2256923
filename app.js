@@ -83,6 +83,13 @@ const S = {
   volUnit: 120,
   target: null,
   showTarget: false,
+  vZoom: 1,
+  plotW: 0, plotH: 0,
+  axisDrag: null,
+  showPosCard: true,
+  showPosDetails: true,
+  showPosLabel: true,
+  showOhlc: true,
   watermark: false,
   useLiq: true,
   position: null,
@@ -275,8 +282,8 @@ function closePosition(reason) {
   $('#posCard').classList.add('hidden');
   $('#abClose').classList.add('hidden');
 
-  if (reason === 'tp') showModal('Тейк-профит исполнен', P, exit, pnl, false);
-  else if (reason === 'liq') showModal('Позиция ликвидирована', P, exit, pnl, true);
+  if (reason === 'tp') showNote('Тейк-профит исполнен', P, exit, pnl, false);
+  else if (reason === 'liq') showNote('Позиция ликвидирована', P, exit, pnl, true);
   else toast('Закрыто: ' + fmtSigned(pnl) + ' USDT', pnl >= 0 ? 'green' : 'red');
 }
 
@@ -294,8 +301,10 @@ function checkExits(price) {
 
 function renderPosition() {
   const P = S.position;
-  if (!P) { $('#posCard').classList.add('hidden'); $('#abClose').classList.add('hidden'); return; }
-  $('#posCard').classList.remove('hidden');
+  const card = $('#posCard');
+  if (!P) { card.classList.add('hidden'); $('#abClose').classList.add('hidden'); return; }
+  card.classList.toggle('hidden', !S.showPosCard);
+  card.classList.toggle('compact', !S.showPosDetails);
   $('#abClose').classList.remove('hidden');
 
   const pnl = pnlAt(lastPrice(), P);
@@ -319,21 +328,28 @@ function renderPosition() {
 
 /* ══════════ Всплывающее окно ══════════ */
 
-let modalTimer = null;
-function showModal(title, P, exit, pnl, loss) {
-  $('#mdIcon').textContent = loss ? '!' : '✓';
-  $('#mdIcon').className = 'modal-icon' + (loss ? ' loss' : '');
-  $('#mdTitle').textContent = title;
-  $('#mdSub').textContent = S.symbol + ' · ' + (P.side === 'long' ? 'LONG' : 'SHORT') + ' ' + P.lev + 'x';
-  $('#mdPnl').textContent = fmtSigned(pnl) + ' USDT';
-  $('#mdPnl').className = 'modal-pnl ' + (pnl >= 0 ? 'green' : 'red');
-  $('#mdEntry').textContent = fmt(P.entry);
-  $('#mdExit').textContent = fmt(exit);
-  $('#modal').classList.add('on');
-  clearTimeout(modalTimer);
-  modalTimer = setTimeout(hideModal, 7000);
+let noteTimer = null;
+function showNote(title, P, exit, pnl, loss) {
+  $('#noteIcon').textContent = loss ? '!' : '✓';
+  $('#noteTitle').textContent = title;
+  $('#noteSub').textContent = S.symbol + ' · ' + (P.side === 'long' ? 'LONG' : 'SHORT') +
+    ' ' + P.lev + 'x · выход ' + fmt(exit);
+  $('#notePnl').textContent = fmtSigned(pnl);
+  $('#notePnl').className = 'note-pnl ' + (pnl >= 0 ? 'green' : 'red');
+  $('#note').classList.toggle('loss', !!loss);
+  $('#note').classList.add('on');
+  wrap.classList.add('noted');
+  // тост убираем, чтобы не наезжал на уведомление
+  clearTimeout(toastTimer);
+  $('#toast').classList.remove('show');
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(hideNote, 6000);
 }
-function hideModal() { clearTimeout(modalTimer); $('#modal').classList.remove('on'); }
+function hideNote() {
+  clearTimeout(noteTimer);
+  $('#note').classList.remove('on');
+  wrap.classList.remove('noted');
+}
 
 let toastTimer = null;
 function toast(text, color) {
@@ -461,6 +477,7 @@ function draw(ts) {
   const top = narrow ? 10 : 14;
   const bot = plotH - volH - 8;
   if (plotW < 20 || bot <= top) return;
+  S.plotW = plotW; S.plotH = plotH;
 
   if (S.autoScroll) S.scrollRight = n - 1 + RIGHT_BARS;
   const view = plotW / S.barSpacing;
@@ -483,8 +500,13 @@ function draw(ts) {
   const pad = (mx - mn) * 0.1;
   mn -= pad; mx += pad;
 
+  // вертикальный масштаб: тянем шкалу цен справа
+  const midP = (mn + mx) / 2, halfP = (mx - mn) / 2 / S.vZoom;
+  mn = midP - halfP; mx = midP + halfP;
+
+  const k = S.axisDrag ? 0.5 : 0.14;
   if (!S.scale.ready) { S.scale.min = mn; S.scale.max = mx; S.scale.ready = true; }
-  else { S.scale.min = lerp(S.scale.min, mn, 0.14); S.scale.max = lerp(S.scale.max, mx, 0.14); }
+  else { S.scale.min = lerp(S.scale.min, mn, k); S.scale.max = lerp(S.scale.max, mx, k); }
   const pmin = S.scale.min, pmax = S.scale.max;
   const span = Math.max(pmax - pmin, 1e-12);
   const Y = (p) => bot - (p - pmin) / span * (bot - top);
@@ -573,14 +595,16 @@ function draw(ts) {
     hline(y, C.blue, [4, 3], plotW);
     tag(plotW + 1, y, fmt(P.entry), C.blue, '#fff');
 
-    const pnl = pnlAt(lastPrice(), P);
-    ctx.font = '700 ' + FS + 'px ' + MONO;
-    const label = (P.side === 'long' ? 'LONG ' : 'SHORT ') + fmtSigned(pnl);
-    const tw = ctx.measureText(label).width + 14;
-    ctx.fillStyle = pnl >= 0 ? C.green : C.red;
-    roundRect(8, y - 10, tw, 20, 3); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, 15, y + 0.5);
+    if (S.showPosLabel) {
+      const pnl = pnlAt(lastPrice(), P);
+      ctx.font = '700 ' + FS + 'px ' + MONO;
+      const label = (P.side === 'long' ? 'LONG ' : 'SHORT ') + fmtSigned(pnl);
+      const tw = ctx.measureText(label).width + 14;
+      ctx.fillStyle = pnl >= 0 ? C.green : C.red;
+      roundRect(8, y - 10, tw, 20, 3); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, 15, y + 0.5);
+    }
 
     if (P.tp) {
       const yt = Y(P.tp);
@@ -666,8 +690,9 @@ function updateLegend() {
   chg.style.color = diff >= 0 ? '#26a69a' : '#ef5350';
 
   // на телефоне карточка позиции занимает правый угол — освобождаем строку OHLC
-  $('#lgOhlc').innerHTML = narrow
-    ? (S.position ? '' :
+  const cardUp = S.position && S.showPosCard;
+  $('#lgOhlc').innerHTML = !S.showOhlc ? '' : narrow
+    ? (cardUp ? '' :
       `<span style="color:${col}">О<b> ${fmt(c.o)}</b>&nbsp; М<b> ${fmt(c.h)}</b>&nbsp; ` +
       `Н<b> ${fmt(c.l)}</b>&nbsp; З<b> ${fmt(c.c)}</b></span>`)
     : `<span style="color:${col}">O<b> ${fmt(c.o)}</b>&nbsp; H<b> ${fmt(c.h)}</b>&nbsp; ` +
@@ -755,19 +780,35 @@ function openSheet(v) {
 const dist2 = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 let tch = null, holdTimer = null;
 
+// куда попал палец или курсор: тело графика, шкала цен справа, шкала времени снизу
+function regionAt(x, y) {
+  if (x > S.plotW) return 'price';
+  if (y > S.plotH) return 'time';
+  return 'chart';
+}
+function setVZoom(z) { S.vZoom = clamp(z, 0.15, 12); }
+function setSpacing(b) { S.barSpacing = clamp(b, 2, 26); syncZoom(); }
+
 function touchStart(e) {
   const r = cv.getBoundingClientRect();
   if (e.touches.length === 2) {
     clearTimeout(holdTimer);
-    tch = { mode: 'pinch', d0: dist2(e.touches), bs0: S.barSpacing };
+    const dx = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+    const dy = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+    // щипок вдоль экрана растягивает время, поперёк — цену
+    tch = { mode: 'pinch', vert: dy > dx, d0: dist2(e.touches) || 1, bs0: S.barSpacing, z0: S.vZoom };
+    S.axisDrag = { kind: 't' };
     return;
   }
   const t = e.touches[0];
-  tch = {
-    mode: 'tap', x0: t.clientX - r.left, y0: t.clientY - r.top,
-    right0: S.scrollRight, t0: performance.now()
-  };
+  const x = t.clientX - r.left, y = t.clientY - r.top;
+  const reg = regionAt(x, y);
   clearTimeout(holdTimer);
+
+  if (reg === 'price') { tch = { mode: 'vscale', y0: y, z0: S.vZoom }; S.axisDrag = { kind: 'v' }; return; }
+  if (reg === 'time') { tch = { mode: 'hscale', x0: x, b0: S.barSpacing }; S.axisDrag = { kind: 'h' }; return; }
+
+  tch = { mode: 'tap', x0: x, y0: y, right0: S.scrollRight, t0: performance.now() };
   holdTimer = setTimeout(() => {
     if (tch && tch.mode === 'tap') { tch.mode = 'cross'; S.cross = { x: tch.x0, y: tch.y0 }; }
   }, 320);
@@ -777,12 +818,14 @@ function touchMove(e) {
   const r = cv.getBoundingClientRect();
   if (tch.mode === 'pinch') {
     if (e.touches.length < 2) return;
-    S.barSpacing = clamp(tch.bs0 * dist2(e.touches) / tch.d0, 2, 26);
-    syncZoom();
+    const k = dist2(e.touches) / tch.d0;
+    if (tch.vert) setVZoom(tch.z0 * k); else setSpacing(tch.bs0 * k);
     return;
   }
   const t = e.touches[0];
   const x = t.clientX - r.left, y = t.clientY - r.top;
+  if (tch.mode === 'vscale') { setVZoom(tch.z0 * Math.exp(-(y - tch.y0) * 0.006)); return; }
+  if (tch.mode === 'hscale') { setSpacing(tch.b0 * Math.exp((x - tch.x0) * 0.005)); return; }
   if (tch.mode === 'cross') { S.cross = { x, y }; return; }
   if (tch.mode === 'tap' && Math.hypot(x - tch.x0, y - tch.y0) > 9) {
     tch.mode = 'pan';
@@ -795,6 +838,7 @@ function touchMove(e) {
 }
 function touchEnd() {
   clearTimeout(holdTimer);
+  S.axisDrag = null;
   if (tch && tch.mode === 'tap' && performance.now() - tch.t0 < 300) {
     // в чистом режиме график запускается касанием
     if (document.body.classList.contains('clean')) togglePlay();
@@ -894,11 +938,14 @@ function bind() {
   $('#abLong').addEventListener('click', () => openPosition('long'));
   $('#abShort').addEventListener('click', () => openPosition('short'));
   $('#abClose').addEventListener('click', () => closePosition());
-  $('#mdOk').addEventListener('click', hideModal);
-  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') hideModal(); });
+  $('#noteX').addEventListener('click', hideNote);
 
   $('#inLiq').addEventListener('change', function () { S.useLiq = this.checked; });
   $('#inWatermark').addEventListener('change', function () { S.watermark = this.checked; });
+  $('#inShowCard').addEventListener('change', function () { S.showPosCard = this.checked; });
+  $('#inShowDetails').addEventListener('change', function () { S.showPosDetails = this.checked; });
+  $('#inShowLabel').addEventListener('change', function () { S.showPosLabel = this.checked; });
+  $('#inShowOhlc').addEventListener('change', function () { S.showOhlc = this.checked; });
   $('#inTradeBar').addEventListener('change', function () {
     document.body.classList.toggle('no-trade-bar', !this.checked);
     setTimeout(resize, 40);
@@ -913,23 +960,43 @@ function bind() {
   // мышь
   wrap.addEventListener('mousemove', (e) => {
     const r = cv.getBoundingClientRect();
-    S.cross = { x: e.clientX - r.left, y: e.clientY - r.top };
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const A = S.axisDrag;
+    if (A && A.kind === 'v') { S.cross = null; setVZoom(A.z0 * Math.exp(-(y - A.y0) * 0.006)); return; }
+    if (A && A.kind === 'h') { S.cross = null; setSpacing(A.b0 * Math.exp((x - A.x0) * 0.005)); return; }
+
+    const reg = regionAt(x, y);
+    wrap.style.cursor = reg === 'price' ? 'ns-resize' : reg === 'time' ? 'ew-resize' : 'crosshair';
+    S.cross = { x, y };
     if (S.drag) {
       S.autoScroll = false;
-      S.scrollRight = clamp(S.drag.right - (S.cross.x - S.drag.x) / S.barSpacing, 4, S.candles.length + 200);
+      S.scrollRight = clamp(S.drag.right - (x - S.drag.x) / S.barSpacing, 4, S.candles.length + 200);
     }
   });
   wrap.addEventListener('mouseleave', () => { S.cross = null; S.drag = null; });
   wrap.addEventListener('mousedown', (e) => {
     const r = cv.getBoundingClientRect();
-    S.drag = { x: e.clientX - r.left, right: S.scrollRight };
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const reg = regionAt(x, y);
+    if (reg === 'price') S.axisDrag = { kind: 'v', y0: y, z0: S.vZoom };
+    else if (reg === 'time') S.axisDrag = { kind: 'h', x0: x, b0: S.barSpacing };
+    else S.drag = { x, right: S.scrollRight };
   });
-  window.addEventListener('mouseup', () => { S.drag = null; });
-  wrap.addEventListener('dblclick', () => { S.autoScroll = true; });
+  window.addEventListener('mouseup', () => { S.drag = null; S.axisDrag = null; });
+  wrap.addEventListener('dblclick', (e) => {
+    const r = cv.getBoundingClientRect();
+    const reg = regionAt(e.clientX - r.left, e.clientY - r.top);
+    if (reg === 'price') { setVZoom(1); toast('Масштаб цены сброшен'); }
+    else if (reg === 'time') setSpacing(7);
+    else S.autoScroll = true;
+  });
   wrap.addEventListener('wheel', (e) => {
     e.preventDefault();
-    S.barSpacing = clamp(S.barSpacing * (e.deltaY > 0 ? 0.9 : 1.1), 2, 26);
-    syncZoom();
+    const r = cv.getBoundingClientRect();
+    const up = e.deltaY < 0;
+    // колесо над шкалой цен растягивает график по вертикали
+    if (regionAt(e.clientX - r.left, e.clientY - r.top) === 'price') setVZoom(S.vZoom * (up ? 1.08 : 0.92));
+    else setSpacing(S.barSpacing * (up ? 1.1 : 0.9));
   }, { passive: false });
 
   // тач
@@ -960,7 +1027,7 @@ function bind() {
     if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
     const k = e.key.toLowerCase();
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-    else if (k === 'escape') { hideModal(); openSheet(false); }
+    else if (k === 'escape') { hideNote(); openSheet(false); }
     else if (k === 'b' || k === 'и') openPosition('long');
     else if (k === 's' || k === 'ы') openPosition('short');
     else if (k === 'c' || k === 'с') closePosition();
@@ -984,6 +1051,10 @@ function init() {
   S.useLiq = $('#inLiq').checked;
   S.watermark = $('#inWatermark').checked;
   S.showTarget = $('#inShowTarget').checked;
+  S.showPosCard = $('#inShowCard').checked;
+  S.showPosDetails = $('#inShowDetails').checked;
+  S.showPosLabel = $('#inShowLabel').checked;
+  S.showOhlc = $('#inShowOhlc').checked;
   document.body.classList.toggle('no-trade-bar', !$('#inTradeBar').checked);
   applyInputs(true);
   clearTarget();
